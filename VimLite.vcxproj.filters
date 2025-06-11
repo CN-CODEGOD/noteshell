@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="pdcurses\curses.h">
+      <Filter>pdcurses</Filter>
+    </None>
+    <None Include="pdcurses\panel.h">
+      <Filter>pdcurses</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="pdcurses">
+      <UniqueIdentifier>{602f13bb-b5dc-41a8-ba75-fc97f29cd573}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+</Project>
