@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>note · NoteShell 同步</title>
+    <style>
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: linear-gradient(135deg, #eef6ff, #f8f9ff 35%, #fdf2f8);
+        color: #1f2937;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 24px 28px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 20px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(8px);
+      }
+
+      .title-wrap h1 { margin: 0; font-size: 1.7rem; }
+      .title-wrap p { margin: 8px 0 0; color: #6b7280; font-size: 0.95rem; }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        background: #eef2ff;
+        color: #4338ca;
+      }
+
+      .dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: #9ca3af;
+      }
+      .dot.on { background: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,.18); }
+      .dot.off { background: #ef4444; }
+
+      .stats {
+        margin-top: 20px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .stat {
+        flex: 1;
+        min-width: 140px;
+        background: rgba(255,255,255,0.8);
+        border: 1px solid rgba(148,163,184,0.25);
+        border-radius: 16px;
+        padding: 16px 18px;
+        box-shadow: 0 10px 24px rgba(15,23,42,0.05);
+      }
+      .stat .k { font-size: 0.78rem; color: #7c3aed; text-transform: uppercase; letter-spacing: .05em; }
+      .stat .v { font-size: 1.5rem; font-weight: 700; margin-top: 6px; }
+
+      .toolbar {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      button {
+        border: none;
+        border-radius: 12px;
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        background: linear-gradient(135deg, #4f46e5, #8b5cf6);
+        color: white;
+        box-shadow: 0 10px 22px rgba(99,102,241,0.22);
+      }
+      button.ghost {
+        background: white;
+        color: #4338ca;
+        border: 1px solid #c7d2fe;
+        box-shadow: none;
+      }
+
+      .note-list {
+        margin-top: 22px;
+        background: rgba(255,255,255,0.85);
+        border: 1px solid rgba(148,163,184,0.25);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 14px 30px rgba(15,23,42,0.06);
+      }
+
+      .note-list h3 { margin: 0 0 14px; }
+
+      ul { list-style: none; padding: 0; margin: 0; }
+
+      li {
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 10px;
+      }
+
+      li.new { animation: flash 1.6s ease-out; border-color: #a7f3d0; }
+
+      @keyframes flash {
+        0%   { background: #d1fae5; border-color: #34d399; }
+        100% { background: #f8fafc; border-color: #e2e8f0; }
+      }
+
+      li .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      li .content { font-size: 1rem; word-break: break-word; }
+      li .ts {
+        font-size: 0.76rem;
+        color: #7c3aed;
+        background: #f3e8ff;
+        padding: 4px 10px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .empty { color: #94a3b8; text-align: center; padding: 30px 0; }
+
+      .footer {
+        text-align: center;
+        margin-top: 22px;
+        color: #64748b;
+        font-size: 0.9rem;
+      }
+      a { color: #4f46e5; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <div class="title-wrap">
+          <h1>📝 note 同步页</h1>
+          <p>实时显示 noteshell 终端里的消息 · 单会话一次同步</p>
+        </div>
+        <div class="status">
+          <span id="connDot" class="dot"></span>
+          <span id="connText">连接中…</span>
+        </div>
+      </header>
+
+      <section class="stats">
+        <div class="stat">
+          <div class="k">笔记总数</div>
+          <div class="v" id="statCount">–</div>
+        </div>
+        <div class="stat">
+          <div class="k">同步序号</div>
+          <div class="v" id="statSeq">–</div>
+        </div>
+        <div class="stat">
+          <div class="k">最近更新</div>
+          <div class="v" id="statTime" style="font-size:1rem;">–</div>
+        </div>
+      </section>
+
+      <div class="toolbar">
+        <button id="btnRefresh">手动刷新</button>
+        <button id="btnHome" class="ghost">返回主页</button>
+      </div>
+
+      <section class="note-list">
+        <h3>noteshell 消息</h3>
+        <ul id="noteList">
+          <li class="empty">加载中…</li>
+        </ul>
+      </section>
+
+      <div class="footer">© 2026 NoteShell · 与终端笔记实时同步</div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      let lastRendered = 0;
+
+      function fmtTime(mtime) {
+        if (!mtime) return "–";
+        const d = new Date(mtime * 1000);
+        const p = (n) => String(n).padStart(2, "0");
+        return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+      }
+
+      function render(data, highlightNew) {
+        $("statCount").textContent = data.count;
+        $("statSeq").textContent = data.seq;
+        $("statTime").textContent = fmtTime(data.mtime);
+
+        const ul = $("noteList");
+        ul.innerHTML = "";
+        if (!data.notes || data.notes.length === 0) {
+          ul.innerHTML = '<li class="empty">还没有笔记，去 noteshell 里输入一条吧～</li>';
+          return;
+        }
+        // 最新的显示在最上面
+        const list = data.notes.slice().reverse();
+        list.forEach((n, idx) => {
+          const li = document.createElement("li");
+          if (highlightNew && idx === 0) li.className = "new";
+          li.innerHTML = `
+            <div class="row">
+              <div class="content"></div>
+              <div class="ts"></div>
+            </div>`;
+          li.querySelector(".content").textContent = n.content;
+          li.querySelector(".ts").textContent = n.ts || "—";
+          ul.appendChild(li);
+        });
+      }
+
+      async function load(highlightNew) {
+        try {
+          const r = await fetch("/api/notes", { cache: "no-store" });
+          const data = await r.json();
+          render(data, highlightNew);
+          lastRendered = data.count;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      function setConn(state, text) {
+        const dot = $("connDot");
+        dot.className = "dot " + state;
+        $("connText").textContent = text;
+      }
+
+      // —— SSE 实时同步 ——
+      let es = null;
+      function connect() {
+        try {
+          es = new EventSource("/api/events");
+          es.onopen = () => setConn("on", "已连接");
+          es.onmessage = (ev) => {
+            try {
+              const msg = JSON.parse(ev.data);
+              if (msg.type === "hello") {
+                setConn("on", "已连接");
+              } else if (msg.type === "notes") {
+                // 收到 noteshell 的推送 → 重新拉取最新列表
+                load(true);
+              }
+            } catch (e) { /* ignore */ }
+          };
+          es.onerror = () => {
+            setConn("off", "重连中…");
+            // EventSource 会自动重连；这里只更新状态
+          };
+        } catch (e) {
+          setConn("off", "不支持 SSE");
+        }
+      }
+
+      $("btnRefresh").addEventListener("click", () => load(true));
+      $("btnHome").addEventListener("click", () => (location.href = "/"));
+
+      load(false);
+      connect();
+      // 兜底轮询（SSE 断开时也能同步）
+      setInterval(() => load(lastRendered === 0), 5000);
+    </script>
+  </body>
+</html>
