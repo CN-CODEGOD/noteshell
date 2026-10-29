@@ -20,6 +20,9 @@
 ```
 请阅读 https://github.com/CN-CODEGOD/noteshell/blob/main/install.md 并帮我设置安装noteshell agent工具
 ```
+
+<img width="867" height="704" alt="image" src="https://github.com/user-attachments/assets/b2a5c1d0-dec1-4359-b211-b3692d874f6b" />
+
 ### 1. 启动服务器
 
 ```bash
