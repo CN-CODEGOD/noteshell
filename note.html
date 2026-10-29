@@ -1,289 +1,701 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>note · NoteShell 同步</title>
-    <style>
-      * { box-sizing: border-box; }
-
-      body {
-        margin: 0;
-        font-family: "Microsoft YaHei", Arial, sans-serif;
-        background: linear-gradient(135deg, #eef6ff, #f8f9ff 35%, #fdf2f8);
-        color: #1f2937;
-      }
-
-      .container {
-        max-width: 900px;
-        margin: 40px auto;
-        padding: 20px;
-      }
-
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
-        padding: 24px 28px;
-        background: rgba(255, 255, 255, 0.72);
-        border: 1px solid rgba(148, 163, 184, 0.22);
-        border-radius: 20px;
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-        backdrop-filter: blur(8px);
-      }
-
-      .title-wrap h1 { margin: 0; font-size: 1.7rem; }
-      .title-wrap p { margin: 8px 0 0; color: #6b7280; font-size: 0.95rem; }
-
-      .status {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 16px;
-        border-radius: 999px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        background: #eef2ff;
-        color: #4338ca;
-      }
-
-      .dot {
-        width: 10px; height: 10px; border-radius: 50%;
-        background: #9ca3af;
-      }
-      .dot.on { background: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,.18); }
-      .dot.off { background: #ef4444; }
-
-      .stats {
-        margin-top: 20px;
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      .stat {
-        flex: 1;
-        min-width: 140px;
-        background: rgba(255,255,255,0.8);
-        border: 1px solid rgba(148,163,184,0.25);
-        border-radius: 16px;
-        padding: 16px 18px;
-        box-shadow: 0 10px 24px rgba(15,23,42,0.05);
-      }
-      .stat .k { font-size: 0.78rem; color: #7c3aed; text-transform: uppercase; letter-spacing: .05em; }
-      .stat .v { font-size: 1.5rem; font-weight: 700; margin-top: 6px; }
-
-      .toolbar {
-        margin-top: 20px;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-      }
-
-      button {
-        border: none;
-        border-radius: 12px;
-        padding: 10px 16px;
-        font-size: 0.9rem;
-        cursor: pointer;
-        background: linear-gradient(135deg, #4f46e5, #8b5cf6);
-        color: white;
-        box-shadow: 0 10px 22px rgba(99,102,241,0.22);
-      }
-      button.ghost {
-        background: white;
-        color: #4338ca;
-        border: 1px solid #c7d2fe;
-        box-shadow: none;
-      }
-
-      .note-list {
-        margin-top: 22px;
-        background: rgba(255,255,255,0.85);
-        border: 1px solid rgba(148,163,184,0.25);
-        border-radius: 20px;
-        padding: 20px;
-        box-shadow: 0 14px 30px rgba(15,23,42,0.06);
-      }
-
-      .note-list h3 { margin: 0 0 14px; }
-
-      ul { list-style: none; padding: 0; margin: 0; }
-
-      li {
-        padding: 14px 16px;
-        border-radius: 12px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        margin-bottom: 10px;
-      }
-
-      li.new { animation: flash 1.6s ease-out; border-color: #a7f3d0; }
-
-      @keyframes flash {
-        0%   { background: #d1fae5; border-color: #34d399; }
-        100% { background: #f8fafc; border-color: #e2e8f0; }
-      }
-
-      li .row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-      }
-      li .content { font-size: 1rem; word-break: break-word; }
-      li .ts {
-        font-size: 0.76rem;
-        color: #7c3aed;
-        background: #f3e8ff;
-        padding: 4px 10px;
-        border-radius: 999px;
-        white-space: nowrap;
-      }
-
-      .empty { color: #94a3b8; text-align: center; padding: 30px 0; }
-
-      .footer {
-        text-align: center;
-        margin-top: 22px;
-        color: #64748b;
-        font-size: 0.9rem;
-      }
-      a { color: #4f46e5; }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <header class="header">
-        <div class="title-wrap">
-          <h1>📝 note 同步页</h1>
-          <p>实时显示 noteshell 终端里的消息 · 单会话一次同步</p>
-        </div>
-        <div class="status">
-          <span id="connDot" class="dot"></span>
-          <span id="connText">连接中…</span>
-        </div>
-      </header>
-
-      <section class="stats">
-        <div class="stat">
-          <div class="k">笔记总数</div>
-          <div class="v" id="statCount">–</div>
-        </div>
-        <div class="stat">
-          <div class="k">同步序号</div>
-          <div class="v" id="statSeq">–</div>
-        </div>
-        <div class="stat">
-          <div class="k">最近更新</div>
-          <div class="v" id="statTime" style="font-size:1rem;">–</div>
-        </div>
-      </section>
-
-      <div class="toolbar">
-        <button id="btnRefresh">手动刷新</button>
-        <button id="btnHome" class="ghost">返回主页</button>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoteShell</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .app { display: flex; height: 100vh; }
+    
+    .sidebar {
+      width: 280px;
+      background: #2c3e50;
+      color: #ecf0f1;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    }
+    
+    .sidebar-header {
+      padding: 20px;
+      background: #34495e;
+      border-bottom: 1px solid #1a252f;
+    }
+    
+    .sidebar-header h1 { font-size: 1.3rem; margin-bottom: 5px; }
+    .sidebar-header p { font-size: 0.85rem; color: #95a5a6; }
+    
+    .notebook-list { flex: 1; overflow-y: auto; padding: 10px; }
+    
+    .notebook-item {
+      padding: 12px 15px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .notebook-item:hover { background: #34495e; }
+    .notebook-item.active { background: #3498db; }
+    .notebook-item .name { font-weight: 600; margin-bottom: 4px; }
+    .notebook-item .title { font-size: 0.85rem; color: #bdc3c7; margin-bottom: 4px; }
+    .notebook-item.active .title { color: #ecf0f1; }
+    .notebook-item .desc { font-size: 0.75rem; color: #95a5a6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .notebook-item .meta { font-size: 0.75rem; color: #7f8c8d; margin-top: 4px; }
+    .notebook-item.active .meta { color: #d5e8f5; }
+    
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    
+    .main-header {
+      padding: 20px 30px;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .main-header-left h2 { font-size: 1.5rem; margin-bottom: 5px; }
+    .main-header-left .desc { color: #7f8c8d; font-size: 0.9rem; }
+    .main-header-left .stats { margin-top: 10px; display: flex; gap: 20px; font-size: 0.85rem; color: #95a5a6; }
+    
+    .btn-add {
+      padding: 10px 20px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    
+    .btn-add:hover { background: #2980b9; }
+    
+    .notes-container { flex: 1; overflow-y: auto; padding: 20px 30px; }
+    
+    .note {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: all 0.2s;
+      position: relative;
+    }
+    
+    .note:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .note.pinned { border-left: 4px solid #e74c3c; }
+    
+    .note-actions {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      display: flex;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .note:hover .note-actions { opacity: 1; }
+    
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-edit { background: #3498db; color: white; }
+    .btn-edit:hover { background: #2980b9; }
+    .btn-delete { background: #e74c3c; color: white; }
+    .btn-delete:hover { background: #c0392b; }
+    
+    .note-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .note-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    
+    .priority {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .priority:hover { transform: scale(1.1); }
+    .priority.P0 { background: #e74c3c; color: white; }
+    .priority.P1 { background: #f39c12; color: white; }
+    .priority.P2 { background: #95a5a6; color: white; }
+    
+    .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+    .tag { padding: 2px 8px; background: #3498db; color: white; border-radius: 12px; font-size: 0.75rem; }
+    .author { padding: 2px 8px; background: #9b59b6; color: white; border-radius: 12px; font-size: 0.75rem; }
+    
+    .status {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .status:hover { transform: scale(1.05); }
+    .status.todo { background: #f39c12; color: white; }
+    .status.done { background: #27ae60; color: white; }
+    .status.archived { background: #7f8c8d; color: white; }
+    
+    .due { padding: 2px 8px; background: #e67e22; color: white; border-radius: 12px; font-size: 0.75rem; }
+    .due.overdue { background: #e74c3c; }
+    
+    .note-time { font-size: 0.8rem; color: #95a5a6; white-space: nowrap; }
+    .note-content { line-height: 1.6; color: #2c3e50; }
+    .note-content h1, .note-content h2, .note-content h3 { margin: 15px 0 10px; }
+    .note-content h1 { font-size: 1.5rem; }
+    .note-content h2 { font-size: 1.3rem; }
+    .note-content h3 { font-size: 1.1rem; }
+    .note-content p { margin: 10px 0; }
+    .note-content code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-family: "Courier New", monospace; font-size: 0.9em; }
+    .note-content pre { background: #f8f9fa; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 10px 0; }
+    .note-content pre code { background: none; padding: 0; }
+    .note-content ul, .note-content ol { margin: 10px 0; padding-left: 25px; }
+    .note-content li { margin: 5px 0; }
+    .note-content input[type="checkbox"] { margin-right: 8px; cursor: pointer; width: 16px; height: 16px; }
+    .note-content blockquote { border-left: 4px solid #3498db; padding: 10px 15px; margin: 10px 0; background: #f8f9fa; color: #555; }
+    .note-content a { color: #3498db; text-decoration: none; }
+    .note-content a:hover { text-decoration: underline; }
+    
+    .note-footer { margin-top: 12px; padding-top: 12px; border-top: 1px solid #ecf0f1; font-size: 0.8rem; color: #95a5a6; }
+    .empty { text-align: center; padding: 60px 20px; color: #95a5a6; }
+    .empty h3 { margin-bottom: 10px; }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.active { display: flex; }
+    
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 700px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-header h3 { font-size: 1.3rem; }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #95a5a6;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    
+    .modal-close:hover { background: #f5f5f5; color: #333; }
+    .modal-body { padding: 20px; }
+    
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50; }
+    
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+    
+    .form-group textarea { min-height: 200px; resize: vertical; font-family: "Courier New", monospace; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #3498db; }
+    
+    .form-row { display: flex; gap: 15px; }
+    .form-row .form-group { flex: 1; }
+    
+    .checkbox-group { display: flex; align-items: center; gap: 10px; }
+    .checkbox-group input[type="checkbox"] { width: auto; }
+    .checkbox-group label { margin: 0; cursor: pointer; }
+    
+    .modal-footer {
+      padding: 20px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    
+    .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.95rem; transition: all 0.2s; }
+    .btn-primary { background: #3498db; color: white; }
+    .btn-primary:hover { background: #2980b9; }
+    .btn-secondary { background: #95a5a6; color: white; }
+    .btn-secondary:hover { background: #7f8c8d; }
+    
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #bdc3c7; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #95a5a6; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h1>NoteShell</h1>
+        <p>终端笔记同步</p>
       </div>
-
-      <section class="note-list">
-        <h3>noteshell 消息</h3>
-        <ul id="noteList">
-          <li class="empty">加载中…</li>
-        </ul>
-      </section>
-
-      <div class="footer">© 2026 NoteShell · 与终端笔记实时同步</div>
+      <div class="notebook-list" id="notebookList">
+        <div class="empty">加载中...</div>
+      </div>
     </div>
-
-    <script>
-      const $ = (id) => document.getElementById(id);
-      let lastRendered = 0;
-
-      function fmtTime(mtime) {
-        if (!mtime) return "–";
-        const d = new Date(mtime * 1000);
-        const p = (n) => String(n).padStart(2, "0");
-        return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-      }
-
-      function render(data, highlightNew) {
-        $("statCount").textContent = data.count;
-        $("statSeq").textContent = data.seq;
-        $("statTime").textContent = fmtTime(data.mtime);
-
-        const ul = $("noteList");
-        ul.innerHTML = "";
-        if (!data.notes || data.notes.length === 0) {
-          ul.innerHTML = '<li class="empty">还没有笔记，去 noteshell 里输入一条吧～</li>';
-          return;
+    
+    <div class="main">
+      <div class="main-header" id="mainHeader">
+        <div class="main-header-left">
+          <h2>选择一个笔记本</h2>
+          <div class="desc">从左侧选择一个笔记本开始查看</div>
+        </div>
+      </div>
+      <div class="notes-container" id="notesContainer">
+        <div class="empty">
+          <h3>暂无内容</h3>
+          <p>请选择一个笔记本</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">编辑笔记</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>内容 (Markdown)</label>
+          <textarea id="editContent" placeholder="输入笔记内容..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>优先级</label>
+            <select id="editPriority">
+              <option value="P0">P0 - 最高</option>
+              <option value="P1">P1 - 高</option>
+              <option value="P2" selected>P2 - 普通</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>状态</label>
+            <select id="editStatus">
+              <option value="todo">待办</option>
+              <option value="done">已完成</option>
+              <option value="archived">已归档</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>标签 (逗号分隔)</label>
+            <input type="text" id="editTags" placeholder="工作, 项目, 紧急">
+          </div>
+          <div class="form-group">
+            <label>截止日期</label>
+            <input type="date" id="editDue">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>作者</label>
+            <select id="editAuthor">
+              <option value="A">A - noteshell</option>
+              <option value="M">M - 其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="checkbox-group" style="margin-top: 30px;">
+              <input type="checkbox" id="editPinned">
+              <label for="editPinned">置顶</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveNote()">保存</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let currentNotebook = null;
+    let notebooks = {};
+    let editingNoteId = null;
+    let currentNotes = [];
+    
+    function renderMarkdown(text) {
+      if (!text) return '';
+      let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (m, lang, code) => `<pre><code>${code.trim()}</code></pre>`);
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+      html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+      html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
+      html = html.replace(/^- \[x\] (.*$)/gim, '<li><input type="checkbox" checked data-task="$1"> $1</li>');
+      html = html.replace(/^- \[ \] (.*$)/gim, '<li><input type="checkbox" data-task="$1"> $1</li>');
+      html = html.replace(/^- (?!<input)(.*$)/gim, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+      html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
+      html = html.replace(/\n\n/g, '</p><p>');
+      html = html.replace(/\n/g, '<br>');
+      html = '<p>' + html + '</p>';
+      html = html.replace(/<p><\/p>/g, '');
+      html = html.replace(/<p>(<h[1-3]>)/g, '$1');
+      html = html.replace(/(<\/h[1-3]>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<ul>)/g, '$1');
+      html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<pre>)/g, '$1');
+      html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+      html = html.replace(/<p>(<blockquote>)/g, '$1');
+      html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
+      return html;
+    }
+    
+    async function loadNotebooks() {
+      try {
+        const r = await fetch('/api/notebooks', { cache: 'no-store' });
+        const data = await r.json();
+        notebooks = {};
+        data.notebooks.forEach(nb => { notebooks[nb.name] = nb; });
+        renderNotebookList();
+        if (data.notebooks.length > 0 && !currentNotebook) {
+          selectNotebook(data.notebooks[0].name);
         }
-        // 最新的显示在最上面
-        const list = data.notes.slice().reverse();
-        list.forEach((n, idx) => {
-          const li = document.createElement("li");
-          if (highlightNew && idx === 0) li.className = "new";
-          li.innerHTML = `
-            <div class="row">
-              <div class="content"></div>
-              <div class="ts"></div>
-            </div>`;
-          li.querySelector(".content").textContent = n.content;
-          li.querySelector(".ts").textContent = n.ts || "—";
-          ul.appendChild(li);
+      } catch (e) {
+        console.error('Failed to load notebooks:', e);
+      }
+    }
+    
+    function renderNotebookList() {
+      const list = document.getElementById('notebookList');
+      list.innerHTML = '';
+      Object.values(notebooks).forEach(nb => {
+        const item = document.createElement('div');
+        item.className = 'notebook-item';
+        if (currentNotebook === nb.name) item.classList.add('active');
+        item.innerHTML = `
+          <div class="name">${nb.name}</div>
+          <div class="title">${nb.title || nb.name}</div>
+          ${nb.desc ? `<div class="desc">${nb.desc}</div>` : ''}
+          <div class="meta">${nb.count} 条笔记${nb.vim_mode ? ' · vim' : ''}</div>
+        `;
+        item.onclick = () => selectNotebook(nb.name);
+        list.appendChild(item);
+      });
+    }
+    
+    async function selectNotebook(name) {
+      currentNotebook = name;
+      renderNotebookList();
+      await loadNotes();
+    }
+    
+    async function loadNotes() {
+      if (!currentNotebook) return;
+      try {
+        const r = await fetch(`/api/notebook/${encodeURIComponent(currentNotebook)}`, { cache: 'no-store' });
+        const data = await r.json();
+        currentNotes = data.notes || [];
+        renderNotebookHeader(data);
+        renderNotes(currentNotes);
+      } catch (e) {
+        console.error('Failed to load notes:', e);
+      }
+    }
+    
+    function renderNotebookHeader(data) {
+      const header = document.getElementById('mainHeader');
+      const nb = notebooks[currentNotebook];
+      header.innerHTML = `
+        <div class="main-header-left">
+          <h2>${data.title || nb.title || currentNotebook}</h2>
+          <div class="desc">${data.desc || nb.desc || ''}</div>
+          <div class="stats">
+            <span>${data.count} 条笔记</span>
+            <span>${data.vim_mode ? 'vim 模式已开启' : ''}</span>
+          </div>
+        </div>
+        <button class="btn-add" onclick="openAddModal()">+ 添加笔记</button>
+      `;
+    }
+    
+    function renderNotes(notes) {
+      const container = document.getElementById('notesContainer');
+      if (!notes || notes.length === 0) {
+        container.innerHTML = `<div class="empty"><h3>暂无笔记</h3><p>点击右上角"添加笔记"按钮创建新笔记</p></div>`;
+        return;
+      }
+      container.innerHTML = '';
+      const sorted = notes.slice().sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return (b.updated || b.ts).localeCompare(a.updated || a.ts);
+      });
+      sorted.forEach(note => {
+        const div = document.createElement('div');
+        div.className = 'note';
+        div.dataset.noteId = note.id;
+        if (note.pinned) div.classList.add('pinned');
+        let metaHtml = '';
+        if (note.priority) {
+          metaHtml += `<span class="priority ${note.priority}" onclick="cyclePriority(${note.id}, '${note.priority}')" title="点击切换优先级">${note.priority}</span>`;
+        }
+        if (note.tags && note.tags.length > 0) {
+          metaHtml += '<div class="tags">';
+          note.tags.forEach(tag => { metaHtml += `<span class="tag">#${tag}</span>`; });
+          metaHtml += '</div>';
+        }
+        if (note.author) metaHtml += `<span class="author">${note.author}</span>`;
+        if (note.status) {
+          const statusText = { 'todo': '待办', 'done': '已完成', 'archived': '已归档' };
+          metaHtml += `<span class="status ${note.status}" onclick="toggleStatus(${note.id}, '${note.status}')" title="点击切换状态">${statusText[note.status] || note.status}</span>`;
+        }
+        if (note.due) {
+          const dueDate = new Date(note.due);
+          const now = new Date();
+          const isOverdue = dueDate < now && note.status !== 'done';
+          metaHtml += `<span class="due ${isOverdue ? 'overdue' : ''}">📅 ${note.due}${isOverdue ? ' (已过期)' : ''}</span>`;
+        }
+        let footerHtml = '';
+        if (note.updated && note.updated !== note.ts) {
+          footerHtml = `修改于 ${note.updated}`;
+        } else {
+          footerHtml = `创建于 ${note.ts}`;
+        }
+        div.innerHTML = `
+          <div class="note-actions">
+            <button class="btn-icon btn-edit" onclick="openEditModal(${note.id})" title="编辑">✎</button>
+            <button class="btn-icon btn-delete" onclick="deleteNote(${note.id})" title="删除">🗑</button>
+          </div>
+          <div class="note-header">
+            <div class="note-meta">${metaHtml}</div>
+            <div class="note-time">${note.pinned ? '📌 ' : ''}${note.ts}</div>
+          </div>
+          <div class="note-content">${renderMarkdown(note.content)}</div>
+          <div class="note-footer">${footerHtml}</div>
+        `;
+        container.appendChild(div);
+      });
+      container.querySelectorAll('input[type="checkbox"][data-task]').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+          const taskText = e.target.dataset.task;
+          const noteElement = e.target.closest('.note');
+          const noteId = noteElement.dataset.noteId;
+          if (noteId) toggleTaskInNote(parseInt(noteId), taskText, e.target.checked);
         });
+      });
+    }
+    
+    async function toggleTaskInNote(noteId, taskText, checked) {
+      const note = currentNotes.find(n => n.id === noteId);
+      if (!note) return;
+      let newContent = note.content;
+      if (checked) {
+        newContent = newContent.replace(`- [ ] ${taskText}`, `- [x] ${taskText}`);
+      } else {
+        newContent = newContent.replace(`- [x] ${taskText}`, `- [ ] ${taskText}`);
       }
-
-      async function load(highlightNew) {
-        try {
-          const r = await fetch("/api/notes", { cache: "no-store" });
-          const data = await r.json();
-          render(data, highlightNew);
-          lastRendered = data.count;
-        } catch (e) {
-          console.error(e);
+      try {
+        await fetch(`/api/notebook/${encodeURIComponent(currentNotebook)}/note/${noteId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: newContent })
+        });
+        await loadNotes();
+      } catch (e) {
+        console.error('Failed to toggle task:', e);
+      }
+    }
+    
+    async function cyclePriority(noteId, current) {
+      const priorities = ['P0', 'P1', 'P2'];
+      const idx = priorities.indexOf(current);
+      const next = priorities[(idx + 1) % priorities.length];
+      try {
+        await fetch(`/api/notebook/${encodeURIComponent(currentNotebook)}/note/${noteId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ priority: next })
+        });
+        await loadNotes();
+      } catch (e) {
+        console.error('Failed to update priority:', e);
+      }
+    }
+    
+    async function toggleStatus(noteId, current) {
+      const statuses = ['todo', 'done', 'archived'];
+      const idx = statuses.indexOf(current);
+      const next = statuses[(idx + 1) % statuses.length];
+      try {
+        await fetch(`/api/notebook/${encodeURIComponent(currentNotebook)}/note/${noteId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: next })
+        });
+        await loadNotes();
+      } catch (e) {
+        console.error('Failed to update status:', e);
+      }
+    }
+    
+    function openAddModal() {
+      editingNoteId = null;
+      document.getElementById('modalTitle').textContent = '添加笔记';
+      document.getElementById('editContent').value = '';
+      document.getElementById('editPriority').value = 'P2';
+      document.getElementById('editStatus').value = 'todo';
+      document.getElementById('editTags').value = '';
+      document.getElementById('editDue').value = '';
+      document.getElementById('editAuthor').value = 'A';
+      document.getElementById('editPinned').checked = false;
+      document.getElementById('editModal').classList.add('active');
+    }
+    
+    function openEditModal(noteId) {
+      const note = currentNotes.find(n => n.id === noteId);
+      if (!note) return;
+      editingNoteId = noteId;
+      document.getElementById('modalTitle').textContent = '编辑笔记';
+      document.getElementById('editContent').value = note.content;
+      document.getElementById('editPriority').value = note.priority || 'P2';
+      document.getElementById('editStatus').value = note.status || 'todo';
+      document.getElementById('editTags').value = (note.tags || []).join(', ');
+      document.getElementById('editDue').value = note.due || '';
+      document.getElementById('editAuthor').value = note.author || 'A';
+      document.getElementById('editPinned').checked = note.pinned || false;
+      document.getElementById('editModal').classList.add('active');
+    }
+    
+    function closeModal() {
+      document.getElementById('editModal').classList.remove('active');
+      editingNoteId = null;
+    }
+    
+    async function saveNote() {
+      const content = document.getElementById('editContent').value;
+      const priority = document.getElementById('editPriority').value;
+      const status = document.getElementById('editStatus').value;
+      const tagsStr = document.getElementById('editTags').value;
+      const due = document.getElementById('editDue').value;
+      const author = document.getElementById('editAuthor').value;
+      const pinned = document.getElementById('editPinned').checked;
+      const tags = tagsStr.split(',').map(t => t.trim()).filter(t => t);
+      const noteData = { content, priority, status, tags, due, author, pinned };
+      try {
+        if (editingNoteId) {
+          await fetch(`/api/notebook/${encodeURIComponent(currentNotebook)}/note/${editingNoteId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(noteData)
+          });
+        } else {
+          await fetch(`/api/notebook/${encodeURIComponent(currentNotebook)}/notes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(noteData)
+          });
         }
+        closeModal();
+        await loadNotes();
+        await loadNotebooks();
+      } catch (e) {
+        console.error('Failed to save note:', e);
+        alert('保存失败，请重试');
       }
-
-      function setConn(state, text) {
-        const dot = $("connDot");
-        dot.className = "dot " + state;
-        $("connText").textContent = text;
+    }
+    
+    async function deleteNote(noteId) {
+      if (!confirm('确定要删除这条笔记吗？')) return;
+      try {
+        await fetch(`/api/notebook/${encodeURIComponent(currentNotebook)}/note/${noteId}`, { method: 'DELETE' });
+        await loadNotes();
+        await loadNotebooks();
+      } catch (e) {
+        console.error('Failed to delete note:', e);
+        alert('删除失败，请重试');
       }
-
-      // —— SSE 实时同步 ——
-      let es = null;
-      function connect() {
+    }
+    
+    let es = null;
+    function connectSSE() {
+      if (es) es.close();
+      es = new EventSource('/api/events');
+      es.onmessage = (ev) => {
         try {
-          es = new EventSource("/api/events");
-          es.onopen = () => setConn("on", "已连接");
-          es.onmessage = (ev) => {
-            try {
-              const msg = JSON.parse(ev.data);
-              if (msg.type === "hello") {
-                setConn("on", "已连接");
-              } else if (msg.type === "notes") {
-                // 收到 noteshell 的推送 → 重新拉取最新列表
-                load(true);
-              }
-            } catch (e) { /* ignore */ }
-          };
-          es.onerror = () => {
-            setConn("off", "重连中…");
-            // EventSource 会自动重连；这里只更新状态
-          };
-        } catch (e) {
-          setConn("off", "不支持 SSE");
-        }
-      }
-
-      $("btnRefresh").addEventListener("click", () => load(true));
-      $("btnHome").addEventListener("click", () => (location.href = "/"));
-
-      load(false);
-      connect();
-      // 兜底轮询（SSE 断开时也能同步）
-      setInterval(() => load(lastRendered === 0), 5000);
-    </script>
-  </body>
+          const msg = JSON.parse(ev.data);
+          if (msg.type === 'update' && (!currentNotebook || msg.notebook === currentNotebook)) {
+            loadNotes();
+            loadNotebooks();
+          }
+        } catch (e) {}
+      };
+      es.onerror = () => { setTimeout(connectSSE, 3000); };
+    }
+    
+    document.getElementById('editModal').addEventListener('click', (e) => {
+      if (e.target.id === 'editModal') closeModal();
+    });
+    
+    loadNotebooks();
+    connectSSE();
+    setInterval(loadNotebooks, 30000);
+  </script>
+</body>
 </html>

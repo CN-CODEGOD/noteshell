@@ -14,8 +14,8 @@ WORKDIR /app
 # 只复制运行所需文件（源码 + 静态页）
 COPY server.py note.html noteWeb.html ./
 
-# 数据目录：笔记真源 ~/.noteshell_history 会挂到这里
-# 容器内 HOME=/data，于是文件落在 /data/.noteshell_history
+# 数据目录：笔记本数据 ~/.noteshell_data/ 会挂到这里
+# 容器内 HOME=/data，于是数据落在 /data/.noteshell_data/
 ENV HOME=/data
 RUN mkdir -p /data
 VOLUME ["/data"]

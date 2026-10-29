@@ -1,10 +1,15 @@
-# 运行数据（笔记真源、归档）
+# 运行数据（笔记本数据、服务器配置）
 data/
+.noteshell_data/
+.noteshell_config
 .noteshell_history
 .noteshell_history.*
 .noteshell_history.d/
+.noteshell_sync
+.noteshell_sync_url
 # 构建产物
 noteshell
 *.o
 *.tmp
 *.bak
+__pycache__/

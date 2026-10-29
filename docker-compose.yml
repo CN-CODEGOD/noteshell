@@ -8,7 +8,8 @@ services:
       # 宿主机端口 -> 容器 8001（NOTESHELL_PORT）
       - "8001:8001"
     volumes:
-      # 笔记真源持久化：宿主机 ./data/.noteshell_history <-> 容器 /data/.noteshell_history
+      # 笔记本数据持久化：宿主机 ./data/ <-> 容器 /data/
+      # 数据目录: /data/.noteshell_data/
       - ./data:/data
     environment:
       - NOTESHELL_HOST=0.0.0.0
