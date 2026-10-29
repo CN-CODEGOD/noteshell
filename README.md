@@ -1,6 +1,8 @@
-# NoteShell - 终端笔记工具
+
+‘# NoteShell - 终端笔记工具
 
 一个功能完整的终端笔记工具，支持服务器同步、任务管理、Markdown 渲染和多端访问。
+
 
 ## 特性
 
@@ -11,9 +13,13 @@
 - ✅ **笔记本管理** - 多个笔记本，标题和描述
 - ✅ **中文支持** - 完整的 UTF-8 中文输入支持
 - ✅ **Docker 部署** - 一键容器化部署
+- ✅ **agent 访问** - 一键agent部署
 
 ## 快速开始
-
+# agent 使用
+```
+请阅读 https://github.com/CN-CODEGOD/noteshell/blob/main/install.md 并帮我设置安装noteshell agent工具
+```
 ### 1. 启动服务器
 
 ```bash
