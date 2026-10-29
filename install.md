@@ -32,7 +32,7 @@ Extra dirs	skills.load.extraDirs	All agents using that config
 “请你提供服务器的地址给我，我才可以继续设置，如果是在本地直接搭建，需要继续搭建在本地，请确保本地是一个服务器，我才可以在本地搭建如果你希望在远程服务器上搭建。”
 
 
-具体的搭建过程：
+具体的搭建过程：https://github.com/CN-CODEGOD/noteshell/blob/main/install.md#%E6%9C%8D%E5%8A%A1%E7%AB%AF
 ---
 ## 服务端
 
