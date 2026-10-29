@@ -125,6 +125,8 @@
     
     .btn-edit { background: #3498db; color: white; }
     .btn-edit:hover { background: #2980b9; }
+    .btn-complete { background: #27ae60; color: white; }
+    .btn-complete:hover { background: #229954; }
     .btn-delete { background: #e74c3c; color: white; }
     .btn-delete:hover { background: #c0392b; }
     
@@ -520,6 +522,7 @@
         }
         div.innerHTML = `
           <div class="note-actions">
+            ${note.status === 'todo' ? `<button class="btn-icon btn-complete" onclick="toggleStatus(${note.id}, 'todo')" title="标记完成">✓</button>` : ''}
             <button class="btn-icon btn-edit" onclick="openEditModal(${note.id})" title="编辑">✎</button>
             <button class="btn-icon btn-delete" onclick="deleteNote(${note.id})" title="删除">🗑</button>
           </div>

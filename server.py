@@ -425,7 +425,7 @@ class Handler(BaseHTTPRequestHandler):
                 "author": body.get("author", "A"),
                 "updated": ts,
                 "updated_by": body.get("author", "A"),
-                "status": "todo",
+                "status": body.get("status", "todo"),
                 "due": body.get("due", "")
             }
             data["notes"].append(note)
