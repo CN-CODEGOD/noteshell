@@ -375,6 +375,7 @@
     let notebooks = {};
     let editingNoteId = null;
     let currentNotes = [];
+    let originalContent = '';
     
     function renderMarkdown(text) {
       if (!text) return '';
@@ -600,6 +601,7 @@
     
     function openAddModal() {
       editingNoteId = null;
+      originalContent = '';
       document.getElementById('modalTitle').textContent = '添加笔记';
       document.getElementById('editContent').value = '';
       document.getElementById('editPriority').value = 'P2';
@@ -615,6 +617,7 @@
       const note = currentNotes.find(n => n.id === noteId);
       if (!note) return;
       editingNoteId = noteId;
+      originalContent = note.content || '';
       document.getElementById('modalTitle').textContent = '编辑笔记';
       document.getElementById('editContent').value = note.content;
       document.getElementById('editPriority').value = note.priority || 'P2';
@@ -627,6 +630,8 @@
     }
     
     function closeModal() {
+      const content = document.getElementById('editContent').value;
+      if (content !== originalContent && !confirm('有未保存的修改，确定要关闭吗？')) return;
       document.getElementById('editModal').classList.remove('active');
       editingNoteId = null;
     }
@@ -655,6 +660,7 @@
             body: JSON.stringify(noteData)
           });
         }
+        originalContent = content;
         closeModal();
         await loadNotes();
         await loadNotebooks();
@@ -694,6 +700,12 @@
     
     document.getElementById('editModal').addEventListener('click', (e) => {
       if (e.target.id === 'editModal') closeModal();
+    });
+    
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.getElementById('editModal').classList.contains('active')) {
+        closeModal();
+      }
     });
     
     loadNotebooks();
